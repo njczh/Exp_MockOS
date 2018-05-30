@@ -118,13 +118,17 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pcb.cpp" />
-    <ClCompile Include="processManagement.cpp" />
+    <ClCompile Include="processManager.cpp" />
     <ClCompile Include="processQueueTable.cpp" />
+    <ClCompile Include="RCB.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pcb.h" />
     <ClInclude Include="processQueueTable.h" />
-    <ClInclude Include="processManagement.h" />
+    <ClInclude Include="processManager.h" />
+    <ClInclude Include="RCB.h" />
+    <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="stringTool.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

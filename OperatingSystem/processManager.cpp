@@ -1,4 +1,4 @@
-#include "processManagement.h"
+#include "processManager.h"
 
 ProcessManager* processManager = ProcessManager::GetInstance();
 
@@ -12,18 +12,18 @@ void ProcessManager::CreateInitProcess() {
 	if (processTable.size() > 0)
 		std::cout << "init进程已存在，无法创建！" << std::endl;
 	else
-		Create("init", INIT);
+		CreateProcess("init", INIT);
 }
 
 // 进程创建
-int ProcessManager::Create(const string pName, priorities priority)
+int ProcessManager::CreateProcess(const string pName, priorities priority)
 {
 	if (runningPcb == nullptr && priority != INIT) return 1;
 	// 从内存中申请一个空白PCB，并初始化PCB
 	PCB* pcb = new PCB(pName, priority, runningPcb);
-	if (pcb->getPid() == MAX_PCB) return 2;
+	if (pcb->getPid() == MAX_PROCESS_NUM) return 2;
 	cout << "[  CREATE  ] ";
-	pcb->showOnelineInfo();
+	pcb->showBriefInfo();
 
 	// 将新创建的process image 加入主进程表
 	processTable.push_back(pcb);
@@ -35,7 +35,7 @@ int ProcessManager::Create(const string pName, priorities priority)
 }
 
 // 在进程表中找到PID的进程
-pTable_iter ProcessManager::Retrieve(unsigned int pid)
+pTable_iter ProcessManager::RetrieveProcess(unsigned int pid)
 {
 	pTable_iter iter;
 
@@ -46,43 +46,45 @@ pTable_iter ProcessManager::Retrieve(unsigned int pid)
 	return iter;
 }
 
-// 进程撤销
-int ProcessManager::Delete(unsigned int pid)
+// 操作系统终止进程的过程如下（撤销原语）：
+//		根据被终止进程的标识符，检索PCB，从中读出该进程的状态。
+//		若被终止进程处于执行状态，立即终止该进程的执行，将处理机资源分配给其他进程。
+//		若该进程还有子进程，则应将其所有子进程终止。
+//		将该进程所拥有的全部资源，或归还给其父进程或归还给操作系统。
+//		将该PCB从所在队列（链表）中删除。
+int ProcessManager::DeleteProcess(unsigned int pid)
 {
-	//if (pid == 0) return 1;
-
-	pTable_iter iter = Retrieve(pid);
-
+	pTable_iter iter = RetrieveProcess(pid);
 	if (iter == processTable.end()) return 2;
 
 	PCB * pcb = (*iter);
 
-	list<PCB*> child = pcb->getChild();
+	vector<PCB*> child = pcb->getChild();
 
-	for (list<PCB*>::iterator iter = child.begin(); iter != child.end(); iter++) {
-		Delete((*iter)->getPid());
-	}
+	for (vector<PCB*>::iterator iter = child.begin(); iter != child.end(); iter++) 
+		DeleteProcess((*iter)->getPid());
 
-	if (pcb == runningPcb) 
+	if (pcb == runningPcb) {
 		runningPcb = nullptr;
-	else {
+		Schedule();
+	}
+	else 
+	{
 		// 从就绪/阻塞队列中删除进程
 		switch (pcb->getPList())
 		{
 		case READYLIST:
 			readyList.Delete(pcb);
 			break;
-		case BLOCKLIST:
-			blockedList.Delete(pcb);
-			break;
 		default:
 			break;
 		};
 	}
 
+	pcb->RelResourceAll();
+
 	// 从进程表中撤销进程
 	processTable.erase(iter);
-
 	delete(pcb);
 
 	cout << "[  DELETE  ] Process, PID: " << pid << endl;
@@ -90,7 +92,7 @@ int ProcessManager::Delete(unsigned int pid)
 	return 0;
 }
 
-void ProcessManager::ShowAllProcessByOneline()
+void ProcessManager::ShowAllProcess()
 {
 	cout << left << setw(6) << "NAME"
 		<< right << setw(5) << "PID"
@@ -103,7 +105,7 @@ void ProcessManager::ShowAllProcessByOneline()
 		cout << left << setw(6) << (*iter)->getPName()
 			<< right << setw(5) << (*iter)->getPid();
 
-		if ((*iter)->getPPid() == MAX_PCB)	cout << setw(5) << "/";
+		if ((*iter)->getPPid() == MAX_PROCESS_NUM)	cout << setw(5) << "/";
 		else cout << setw(5) << (*iter)->getPPid();
 
 		cout << setw(10) << (*iter)->getPriorityS()
@@ -115,9 +117,10 @@ void ProcessManager::ShowAllProcessByOneline()
 
 void ProcessManager::ShowOneProcess(unsigned int pid)
 {
-	(*Retrieve(pid))->ShowAllInfo();
+	(*RetrieveProcess(pid))->ShowAllInfo();
 }
 
+// 进程调度
 void ProcessManager::Schedule()
 {
 	readyList.PushBack(runningPcb);
@@ -129,6 +132,20 @@ void ProcessManager::Schedule()
 		cout << "[ SCHEDULE ] Now Process: \" " << runningPcb->getPName()
 		<< " (PID: " << runningPcb->getPid() << ") \" is running!" << endl;
 
+}
+
+void ProcessManager::BlockProcess(RCB* waitRcb, int waitNum)
+{
+	runningPcb->WaitResource(waitRcb, waitNum);
+	runningPcb = nullptr;
+}
+
+void ProcessManager::WakeUpProcess(PCB* pcb)
+{
+
+	if (pcb == nullptr) return;
+	readyList.PushBack(pcb);
+	pcb->WakeUp();
 }
 
 int ProcessManager::getProcessNum()
@@ -144,6 +161,7 @@ bool ProcessManager::isCpuFree()
 		return false;
 }
 
-
-
-// 进程调度
+PCB * ProcessManager::GetRunningPcb()
+{
+	return runningPcb;
+}

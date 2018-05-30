@@ -13,19 +13,43 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Process">
+      <UniqueIdentifier>{3cef65b6-78c3-473b-8d10-7fdcdaba9788}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Process\Header">
+      <UniqueIdentifier>{c17077a2-7ef9-4dd5-ab0b-e981f2437474}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Process\source">
+      <UniqueIdentifier>{1a3dca9f-80ea-4287-aa3a-17ee8d896115}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{1da66a3f-a5a3-4e57-83c7-3418dadf6c01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource\header">
+      <UniqueIdentifier>{42819231-cc94-4104-8e4d-57961b3e4bf7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource\source">
+      <UniqueIdentifier>{91b08d60-8f6a-4da9-b302-1e7df2b9336d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="pcb.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="processManagement.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="processQueueTable.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Process\source</Filter>
+    </ClCompile>
+    <ClCompile Include="processManager.cpp">
+      <Filter>Process\source</Filter>
+    </ClCompile>
+    <ClCompile Include="pcb.cpp">
+      <Filter>Process\source</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager.cpp">
+      <Filter>Resource\source</Filter>
+    </ClCompile>
+    <ClCompile Include="RCB.cpp">
+      <Filter>Resource\source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -33,13 +57,19 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="pcb.h">
-      <Filter>头文件</Filter>
+      <Filter>Process\Header</Filter>
     </ClInclude>
-    <ClInclude Include="processManagement.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="processManager.h">
+      <Filter>Process\Header</Filter>
     </ClInclude>
     <ClInclude Include="processQueueTable.h">
-      <Filter>头文件</Filter>
+      <Filter>Process\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="RCB.h">
+      <Filter>Resource\header</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>Resource\header</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

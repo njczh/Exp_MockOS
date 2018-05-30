@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include <string>
 using std::string;
-#include <list>
-using std::list;
+#include <vector>
+using std::vector;
 #include <iostream>
 
-#define MAX_PCB 1024
+#include "RCB.h"
+
+#define MAX_PROCESS_NUM 1024
 #define USABLE		false
 #define UNUSABLE	true
 
@@ -16,68 +18,86 @@ enum processList	{ READYLIST, BLOCKLIST };
 enum priorities		{ INIT, USER, SYSTEM };
 
 extern class PCB;
+extern class RCB;
 
-struct processStatus
+struct Resource
+{
+	int		owned;
+	int		wait;
+	RCB *	rcb;
+
+	Resource(int owned, int request, RCB* rcb) {
+		this->owned = owned;
+		this->wait = request;
+		this->rcb = rcb;
+	}
+};
+
+struct ProcessStatus
 {
 	processType pType;
 	processList pList;
 };
 
-struct creationTree
+struct CreationTree
 {
-	PCB* parent;
-	list<PCB*> child;
+	PCB*			parent;
+	vector<PCB*>	child;
 };
 
 class PCB
 {
 public:
-	unsigned int	getPid();
-	unsigned int	getPPid();
+	int				getPid();
+	int				getPPid();
 	string			getPName();
 	string			getPTypeS();
 	processList		getPList();
 	priorities		getPriority();
 	string			getPriorityS();
-	list<PCB*>		getChild();
+	vector<PCB*>	getChild();
+	int				getWaitNum(RCB * rcb);
 
 public:
-	void setPid(unsigned int pid);
-	//void setPName(string newName);
-	void setPStatus(processStatus newstatus);
-	//void setPStatus(processType newType);
-	//void setPStatus(processList newList);
+	void	AddChild(PCB* newChild);
+	void	DelChild(int pid);
+	void	AcqResource(RCB *rcb, int num);
+	int		RelResource(RCB *rcb, int num);
+	void	RelResourceAll();
+	void	WaitResource(RCB *rcb, int num);
 	//void setParent(PCB* newParent);
-	void addChild(PCB* newChild);
-	void delChild(unsigned int pid);
 	//bool setPriority(priorities newPriority);
-	//void InitPcb(const string pName, priorities priority, PCB * parent);
-	//void FreePcb();
 
 public:
-	void ShowAllInfo();
-	void showOnelineInfo();
+	void	Ready();		// 新建态 --加载-> 就绪态
+	void	Run();			// 就绪态 --调度-> 运行态
+	void	TimeOut();		// 运行态 --超时-> 就绪态
+	void	Block();		// 运行态 --等待-> 阻塞态
+	void	WakeUp();		// 阻塞态 --事件-> 就绪态
 
 public:
-	static unsigned int getPidFromPool();
-	bool freePidIntoPool();
+	void	ShowAllInfo();
+	void	showBriefInfo();
+
+public:
+	int		RequestPid();
+	bool	ReleasePid();
 
 public:
 	PCB(const string pName, priorities priority, PCB * parent);
 	~PCB();
 
 private:
-	static bool pidPool[MAX_PCB];
+	static bool pidPool[MAX_PROCESS_NUM];
 
 private:
-	unsigned int	pid;				// PID
+	int	pid;							// PID
 	string			pName;				// Name
-										// Open Files
-										// Other Resources			 ( resource which is occupied )
-	processStatus	pStatus;			// Status 
+	vector<Resource>Resources;			// Other Resources			 ( resource which is occupied )
+	ProcessStatus	pStatus;			// Status 
 										//		- Type : ready / running / blocked
 										//		- List : Ready list / Block list
-	creationTree	cTree;				// Creation tree
+	CreationTree	cTree;				// Creation tree
 										//		- Parent
 										//		- Children
 	priorities		priority;			// Priority ：0, 1, 2 ( init, user, system)

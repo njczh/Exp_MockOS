@@ -11,7 +11,7 @@ private:
 	PCBLIST pcbList[3];
 
 public:
-	PcbQueueTable(processList listType):listType(listType) {	}
+	PcbQueueTable(processList listType):listType(listType) {}
 
 public:
 	void PushBack(PCB *pcb);

@@ -1,35 +1,38 @@
 #include "pcb.h"
-#include <iostream>
 
+bool PCB::pidPool[MAX_PROCESS_NUM]; // false 表示可用，true 表示不可用
 
-bool PCB::pidPool[MAX_PCB]; // false 表示可用，true 表示不可用
-
-unsigned int PCB::getPidFromPool()
+int PCB::RequestPid()
 {
-	for (unsigned int i = 0; i < MAX_PCB; i++) {
-		if (pidPool[i] == USABLE) {
+	for (int i = 0; i < MAX_PROCESS_NUM; i++) 
+	{
+		if (pidPool[i] == USABLE)
+		{
 			pidPool[i] = UNUSABLE;
 			return i;
 		}
 	}
-	return MAX_PCB;
+	return MAX_PROCESS_NUM;
 }
 
-bool PCB::freePidIntoPool()
+bool PCB::ReleasePid()
 {
-	if (pid < MAX_PCB) {
+	if (pidPool[pid] == UNUSABLE)
+	{
 		pidPool[pid] = USABLE;
 		return true;
 	}
 	else
+	{
 		return false;
+	}
 }
 
 /*************************************************************************************/
 
 PCB::PCB(const string pName, priorities priority, PCB * parent)
 {
-	this->pid = getPidFromPool();
+	this->pid = RequestPid();
 
 	// Process Name
 	this->pName = pName;
@@ -41,7 +44,7 @@ PCB::PCB(const string pName, priorities priority, PCB * parent)
 	// Creation Tree
 	this->cTree.parent = parent;
 	if (parent != nullptr)
-		parent->addChild(this);
+		parent->AddChild(this);
 
 	// Priority
 	this->priority = priority;
@@ -49,24 +52,24 @@ PCB::PCB(const string pName, priorities priority, PCB * parent)
 
 PCB::~PCB()
 {
-	freePidIntoPool();
+	ReleasePid();
 	if (cTree.parent != nullptr)
-		cTree.parent->delChild(this->pid);
+		cTree.parent->DelChild(this->pid);
 }
 
 /*************************************************************************************/
 
-unsigned int PCB::getPid()
+int PCB::getPid()
 {
 	return pid;
 }
 
-unsigned int PCB::getPPid()
+int PCB::getPPid()
 {
 	if (cTree.parent != nullptr)
 		return cTree.parent->getPid();
 	else
-		return MAX_PCB;
+		return MAX_PROCESS_NUM;
 }
 
 string PCB::getPName()
@@ -101,7 +104,8 @@ priorities PCB::getPriority()
 string PCB::getPriorityS()
 {
 	string s_priority;
-	switch (priority) {
+	switch (priority)
+	{
 	case INIT:
 		s_priority = "Init";
 		break;
@@ -115,36 +119,141 @@ string PCB::getPriorityS()
 	return s_priority;
 }
 
-list<PCB*> PCB::getChild()
+vector<PCB*> PCB::getChild()
 {
 	return cTree.child;
 }
 
+int PCB::getWaitNum(RCB * rcb)
+{
+	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
+	{
+		if (iter->rcb == rcb)
+		{
+			return iter->wait;
+		}
+	}
+	return -1;
+}
+
 /*************************************************************************************/
 
-void PCB::setPid(unsigned int pid)
-{
-	this->pid = pid;
-}
-
-void PCB::setPStatus(processStatus newstatus)
-{
-	this->pStatus = newstatus;
-}
-
-void PCB::addChild(PCB * newChild)
+void PCB::AddChild(PCB * newChild)
 {
 	cTree.child.push_back(newChild);
 }
 
-void PCB::delChild(unsigned int pid) {
-	for (list<PCB*>::iterator iter = cTree.child.begin(); iter != cTree.child.end(); iter++) {
+void PCB::DelChild(int pid) {
+	for (vector<PCB*>::iterator iter = cTree.child.begin(); iter != cTree.child.end(); iter++) {
 		if ((*iter)->getPid() == pid) {
 			cTree.child.erase(iter);
 			return;
 		}
 	}	
 }
+
+void PCB::AcqResource(RCB * rcb, int acqNum)
+{
+	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
+	{
+		if (iter->rcb == rcb)
+		{
+			if (iter->wait >= acqNum) 
+				iter->wait -= acqNum; 
+			iter->owned += acqNum;
+			return;
+		}
+	}
+
+	Resource newResource(acqNum, 0, rcb);
+	Resources.push_back(newResource);
+}
+
+int PCB::RelResource(RCB * rcb, int relNum)
+{
+	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
+	{
+		if (iter->rcb == rcb)
+		{
+			if (iter->owned >= relNum)
+			{
+				iter->owned -= relNum;
+				if (iter->owned == 0)
+					Resources.erase(iter);
+				return 0;
+			}
+			else
+				return 1;
+		}
+	}
+	return 2;
+}
+
+void PCB::RelResourceAll()
+{
+	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
+	{
+		if (iter->wait != 0)
+			iter->rcb->DeleteFromWaitList(this);
+		iter->rcb->ReleaseRes(iter->owned);
+	}
+}
+
+
+void PCB::WaitResource(RCB * rcb, int waitNum)
+{
+	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
+	{
+		if (iter->rcb == rcb)
+		{
+			iter->wait += waitNum;
+			return;
+		}
+	}
+
+	Resource newResource(0, waitNum, rcb);
+	Resources.push_back(newResource);
+
+	Block();
+}
+
+/*************************************************************************************/
+
+// 新建态 --加载-> 就绪态
+void PCB::Ready()
+{
+	pStatus.pType = READY;
+	pStatus.pList = READYLIST;
+}
+
+// 就绪态 --调度-> 运行态
+void PCB::Run()
+{
+	pStatus.pType = RUNNING;
+}
+
+// 运行态 --超时-> 就绪态
+void PCB::TimeOut()
+{
+	pStatus.pType = READY;
+	pStatus.pList = READYLIST;
+}
+
+// 运行态 --等待-> 阻塞态
+void PCB::Block()
+{
+	pStatus.pType = BLOCKED;
+	pStatus.pList = BLOCKLIST;
+}
+
+// 阻塞态 --事件-> 就绪态
+void PCB::WakeUp()
+{
+	pStatus.pType = READY;
+	pStatus.pList = READYLIST;
+}
+
+/*************************************************************************************/
 
 void PCB::ShowAllInfo()
 {
@@ -180,11 +289,24 @@ void PCB::ShowAllInfo()
 	else
 		std::cout << "\nChild PID:\tNULL";
 
+	if (Resources.size() != 0) 
+	{
+		std::cout << "\nResource:";
+		for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++) 
+		{
+			std::cout << "\n    RID: " << iter->rcb->GetRid()
+				<< "    owned: " << iter->owned
+				<< "    wait: " << iter->wait;
+		}
+	}
+	else
+		std::cout << "\nResource:\tNULL";
+
 	std::cout << "\n************************************\n";
 
 }
 
-void PCB::showOnelineInfo()
+void PCB::showBriefInfo()
 {
 	std::cout << getPriorityS() <<" Process, Name: " << pName
 		<< ", PID: " << pid << "\n";

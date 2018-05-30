@@ -5,30 +5,19 @@ void PcbQueueTable::PushBack(PCB *pcb)
 	if (pcb == nullptr) return;
 	// 加入相应的优先级队列
 	pcbList[pcb->getPriority()].push_back(pcb);
-
-	processStatus ps;
-
-	ps.pList = listType;
-	listType == READYLIST ? ps.pType = READY : ps.pType = BLOCKED;
-
-	pcb->setPStatus(ps);
+	pcb->Ready();
 }
 
 PCB* PcbQueueTable::PopFront()
 {
-	for (int i = 2; i >= 0; i--) {
-		if (pcbList[i].size() != 0) {
+	for (int i = 2; i >= 0; i--) 
+	{
+		if (pcbList[i].size() != 0) 
+		{
 			// 弹出不为空最高优先级队列的第一个pcb
 			PCB* pcb = pcbList[i].front();
 			pcbList[i].pop_front();
-
-			processStatus ps;
-
-			ps.pList = listType;
-			ps.pType = RUNNING;
-
-			pcb->setPStatus(ps);
-
+			pcb->Run();
 			return pcb;
 		}
 	}
