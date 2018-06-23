@@ -38,7 +38,6 @@ int main()
 	cout << "Mock OS is initializing ..." << endl;
 
 	processManager->CreateInitProcess();
-	processManager->Schedule();
 	
 	// 运行test shell读入用户命令
 	cout << "\n===================================== ";

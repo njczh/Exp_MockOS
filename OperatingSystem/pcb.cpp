@@ -199,9 +199,13 @@ void PCB::RelResourceAll()
 	}
 }
 
-
+/***********************************************************************************
+* #1 FIX:	2018/06/23 23:01	修复已经拥有资源后在挂起等待出现进程状态没有修改的bug 
+***********************************************************************************/
 void PCB::WaitResource(RCB * rcb, int waitNum)
 {
+	Block();	// 改变进程状态，变为阻塞等待
+
 	for (vector<Resource>::iterator iter = Resources.begin(); iter != Resources.end(); iter++)
 	{
 		if (iter->rcb == rcb)
@@ -211,10 +215,10 @@ void PCB::WaitResource(RCB * rcb, int waitNum)
 		}
 	}
 
+	// 如果没有拥有该资源则保存该资源的拥有（等待）情况
 	Resource newResource(0, waitNum, rcb);
 	Resources.push_back(newResource);
 
-	Block();
 }
 
 /*************************************************************************************/

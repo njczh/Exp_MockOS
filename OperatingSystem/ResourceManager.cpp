@@ -30,7 +30,7 @@ RCB * ResourceManager::GetResourceRcb(int rid)
 		return *iter;
 }
 
-// 功能：进程申请资源，调用资源管理器处理
+// 功能：当前进程申请资源，调用资源管理器处理
 // 返回值：false表示程序需要被阻塞挂起；
 int ResourceManager::Request(PCB * pcb, int rid, int reqNum)
 {
@@ -101,7 +101,7 @@ PCB * ResourceManager::Release(PCB * pcb, int rid, int relNum)
 		break;
 	}
 
-	return false;
+	return nullptr;
 }
 
 void ResourceManager::ShowAllResources()
@@ -128,7 +128,7 @@ ResourceManager * ResourceManager::GetInstance()
 ResourceManager::ResourceManager()
 {
 	for (int i = 0; i < 4; i++) {
-		RCB *rcb = new RCB(3);
+		RCB *rcb = new RCB(rand()%9);
 		rcbTable.push_back(rcb);
 	}
 

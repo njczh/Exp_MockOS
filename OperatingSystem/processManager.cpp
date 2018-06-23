@@ -31,6 +31,8 @@ int ProcessManager::CreateProcess(const string pName, priorities priority)
 	// 插入相应优先级的就绪队列尾部
 	readyList.PushBack(pcb);
 
+	Schedule();
+
 	return 0;
 }
 
@@ -41,7 +43,7 @@ pTable_iter ProcessManager::RetrieveProcess(unsigned int pid)
 
 	for (iter = processTable.begin(); iter != processTable.end(); iter++)
 		if ((*iter)->getPid() == pid)
-			return iter;		
+			return iter;
 
 	return iter;
 }
@@ -61,14 +63,14 @@ int ProcessManager::DeleteProcess(unsigned int pid)
 
 	vector<PCB*> child = pcb->getChild();
 
-	for (vector<PCB*>::iterator iter = child.begin(); iter != child.end(); iter++) 
+	for (vector<PCB*>::iterator iter = child.begin(); iter != child.end(); iter++)
 		DeleteProcess((*iter)->getPid());
 
 	if (pcb == runningPcb) {
 		runningPcb = nullptr;
 		Schedule();
 	}
-	else 
+	else
 	{
 		// 从就绪/阻塞队列中删除进程
 		switch (pcb->getPList())
@@ -100,7 +102,7 @@ void ProcessManager::ShowAllProcess()
 		<< setw(10) << "PRIORITY"
 		<< setw(10) << "STAT"
 		<< endl;
-	for (pTable_iter iter = processTable.begin(); iter != processTable.end(); iter++) 
+	for (pTable_iter iter = processTable.begin(); iter != processTable.end(); iter++)
 	{
 		cout << left << setw(6) << (*iter)->getPName()
 			<< right << setw(5) << (*iter)->getPid();
@@ -115,9 +117,18 @@ void ProcessManager::ShowAllProcess()
 	cout << endl;
 }
 
+/*************************************************************
+ * #1 FIX     ：2018/06/23 23:01 修复越界错误
+ * DESCRIPTION：显示一个进程PCB状态
+ *************************************************************/
 void ProcessManager::ShowOneProcess(unsigned int pid)
 {
-	(*RetrieveProcess(pid))->ShowAllInfo();
+	pTable_iter iter = RetrieveProcess(pid);
+	if (processTable.end() == iter)
+		cout << "[  ERROR!  ] 无此PID进程！请确认输入！" << endl;
+	else
+		(*iter)->ShowAllInfo();
+
 }
 
 // 进程调度
@@ -134,15 +145,19 @@ void ProcessManager::Schedule()
 
 }
 
+
+/***********************************************************
+ * DESCRIPTION：由于当前执行进程等待资源，而阻塞此进程
+ ***********************************************************/
 void ProcessManager::BlockProcess(RCB* waitRcb, int waitNum)
 {
 	runningPcb->WaitResource(waitRcb, waitNum);
-	runningPcb = nullptr;
+	runningPcb = nullptr;	// 这句是必要的，需要让该进程让出CPU
+	Schedule(); // 当前进程阻塞等待，需要调度
 }
 
 void ProcessManager::WakeUpProcess(PCB* pcb)
 {
-
 	if (pcb == nullptr) return;
 	readyList.PushBack(pcb);
 	pcb->WakeUp();
